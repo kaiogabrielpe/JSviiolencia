@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard – Violência contra a Mulher no Brasil 2025</title>
+  <link rel="stylesheet" href="personalizaçao.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>Violência contra a Mulher no Brasil</h1>
+  <span>Pesquisa Nacional DataSenado · 2025</span>
+</header>
+
+<nav>
+  <button class="active" onclick="show('visao-geral', this)">Visão Geral</button>
+  <button onclick="show('tipos', this)">Tipos de Violência</button>
+  <button onclick="show('servicos', this)">Serviços de Apoio</button>
+  <button onclick="show('notas', this)">Relatos</button>
+  <button onclick="show('delegacia', this)">Buscar Delegacia</button>
+</nav>
+
+<main>
+
+  <div id="visao-geral" class="section active">
+    <div class="cards">
+      <div class="card"><div class="num">27%</div><div class="label">Já sofreram violência doméstica por homem</div></div>
+      <div class="card"><div class="num">67%</div><div class="label">Conhecem alguém que sofreu violência</div></div>
+      <div class="card"><div class="num">88%</div><div class="label">Dos casos: violência psicológica</div></div>
+      <div class="card"><div class="num">62%</div><div class="label">O agressor era marido/companheiro</div></div>
+    </div>
+    <div class="charts">
+      <div class="chart-box"><h3>Conhecimento sobre a Lei Maria da Penha</h3><canvas id="chartLei"></canvas></div>
+      <div class="chart-box"><h3>A lei protege as mulheres?</h3><canvas id="chartProtege"></canvas></div>
+      <div class="chart-box"><h3>Áreas da vida afetadas</h3><canvas id="chartAreas"></canvas></div>
+      <div class="chart-box"><h3>Relação com o agressor</h3><canvas id="chartAgressor"></canvas></div>
+    </div>
+  </div>
+
+  <div id="tipos" class="section">
+    <div class="charts">
+      <div class="chart-box" style="grid-column:1/-1"><h3>Tipo de violência sofrida</h3><canvas id="chartTipos" style="max-height:280px"></canvas></div>
+      <div class="chart-box"><h3>Convivência com o agressor</h3><canvas id="chartConvive"></canvas></div>
+      <div class="chart-box"><h3>Relação atual com o agressor</h3><canvas id="chartRelacao"></canvas></div>
+    </div>
+  </div>
+
+  <div id="servicos" class="section">
+    <div class="chart-box"><h3>Conhecimento dos serviços de apoio</h3><canvas id="chartServicos" style="max-height:300px"></canvas></div>
+  </div>
+
+  <div id="notas" class="section">
+    <div class="crud-form">
+      <h3>Adicionar Relatos</h3>
+      <div class="form-row">
+        <input id="nota-titulo" type="text" placeholder="Título" />
+        <select id="nota-categoria">
+          <option value="alerta">Alerta</option>
+          <option value="ajuda">Ajuda</option>
+          <option value="observação">Observação</option>
+          <option value="recomendação">Recomendação</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <input id="nota-texto" type="text" placeholder="Descreva o Relato" style="flex:3"/>
+        <button class="btn btn-primary" onclick="salvarNota()">Salvar</button>
+      </div>
+      <div id="nota-status" style="font-size:0.78rem;color:#888;margin-top:4px;"></div>
+    </div>
+    <table>
+      <thead><tr><th>Título</th><th>Categoria</th><th>Relato</th><th>Ações</th></tr></thead>
+      <tbody id="notas-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- BUSCAR DELEGACIA POR CEP -->
+  <div id="delegacia" class="section">
+    <div class="crud-form">
+      <h3>Buscar Delegacia da Mulher pelo CEP</h3>
+      <p style="font-size:0.8rem;color:#666;margin-bottom:12px;">
+        Digite seu CEP para identificar sua cidade e ver a Delegacia da Mulher (DEAM) de referência do seu estado.
+      </p>
+      <div class="form-row">
+        <input id="cep-input" type="text" placeholder="Ex: 50010-000" maxlength="9" oninput="mascaraCEP(this)" />
+        <button class="btn btn-primary" onclick="buscarCEP()">Buscar</button>
+      </div>
+      <div id="cep-resultado" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer>Fonte: Instituto de Pesquisa DataSenado · coleta de 16/05 a 08/07/2025 · Dashboard educacional</footer>
+
+<script>
+
+function show(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const C = ['#7a1f2e','#c0392b','#e67e22','#2980b9','#27ae60','#8e44ad'];
+
+function pie(id, labels, data, colors) {
+  new Chart(document.getElementById(id), {
+    type: 'pie',
+    data: { labels, datasets: [{ data, backgroundColor: colors || C }] },
+    options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+  });
+}
+
+function bar(id, labels, data, label) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels, datasets: [{ label, data, backgroundColor: C[0] }] },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { max: 100, ticks: { callback: v => v + '%' } } }
+    }
+  });
+}
+
+pie('chartLei', ['Muito (21%)', 'Pouco (67%)', 'Nada (11%)', 'Não sei (2%)'], [21,67,11,2]);
+pie('chartProtege', ['Sim (27%)', 'Em parte (48%)', 'Não (23%)', 'Não sei (2%)'], [27,48,23,2], ['#27ae60','#e67e22','#c0392b','#bdc3c7']);
+bar('chartAreas', ['Rotina diária','Convívio social','Vida profissional','Estudos'], [69,68,46,42], 'Afetadas (%)');
+bar('chartAgressor', ['Marido/companheiro','Ex-parceiro','Namorado','Pai/Padrasto','Irmão/Cunhado'], [62,11,8,7,3], 'Relação (%)');
+bar('chartTipos', ['Psicológica','Física','Moral','Patrimonial','Sexual'], [88,81,81,41,30], 'Incidência (%)');
+pie('chartConvive', ['Não convive (83%)', 'Mora com agressor (12%)', 'Convive sem morar (4%)'], [83,12,4], ['#27ae60','#c0392b','#e67e22']);
+pie('chartRelacao', ['Ex-parceiro (66%)', 'Ainda parceiro (12%)', 'Pai/Padrasto (6%)', 'Outros (7%)', 'Não sei (3%)'], [66,12,6,7,3]);
+
+new Chart(document.getElementById('chartServicos'), {
+  type: 'bar',
+  data: {
+    labels: ['Delegacia da Mulher','Defensoria Pública','CRAS/CREAS','Ligue 180','Casa Abrigo','Casa da Mulher Brasileira'],
+    datasets: [{ data: [93,87,81,76,56,38], backgroundColor: C }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { max: 100, ticks: { callback: v => v + '%' } } }
+  }
+});
+
+
+const B4A_APP = 'E9QlKbPSYRTfeoEuTzzpW2bMflTNmerDUPjvHyJS';
+const B4A_KEY = 'kOPnyLyn5TRM4M8IlvjJlpTmU3YgK531Z2XgC9u7';
+const B4A_URL = 'https://parseapi.back4app.com/classes/Nota';
+let localNotas = JSON.parse(localStorage.getItem('notas') || '[]');
+
+function b4aFetch(url, opts = {}) {
+  return fetch(url, { ...opts, headers: { 'X-Parse-Application-Id': B4A_APP, 'X-Parse-JavaScript-Key': B4A_KEY, 'Content-Type': 'application/json', ...(opts.headers||{}) } });
+}
+
+async function salvarNota() {
+  const titulo = document.getElementById('nota-titulo').value.trim();
+  const categoria = document.getElementById('nota-categoria').value;
+  const texto = document.getElementById('nota-texto').value.trim();
+  const status = document.getElementById('nota-status');
+  if (!titulo || !texto) { status.textContent = 'Preencha título e texto.'; return; }
+  status.textContent = 'Salvando...';
+  try {
+    const r = await b4aFetch(B4A_URL, { method: 'POST', body: JSON.stringify({ titulo, categoria, texto }) });
+    if (!r.ok) throw new Error();
+    status.textContent = '✓ Salvo no Back4App';
+  } catch {
+    const nota = { titulo, categoria, texto, objectId: 'local_' + Date.now() };
+    localNotas.push(nota);
+    localStorage.setItem('notas', JSON.stringify(localNotas));
+    status.textContent = '✓ Salvo localmente';
+  }
+  document.getElementById('nota-titulo').value = '';
+  document.getElementById('nota-texto').value = '';
+  setTimeout(() => { status.textContent = ''; }, 3000);
+  carregarNotas();
+}
+
+async function carregarNotas() {
+  const tbody = document.getElementById('notas-tbody');
+  tbody.innerHTML = '<tr><td colspan="4" style="color:#aaa">Carregando…</td></tr>';
+  let notas = [];
+  try {
+    const r = await b4aFetch(B4A_URL + '?order=-createdAt&limit=20');
+    if (r.ok) { notas = (await r.json()).results || []; } else throw new Error();
+  } catch { notas = localNotas; }
+  if (!notas.length) { tbody.innerHTML = '<tr><td colspan="4" style="color:#aaa">Nenhum relato ainda.</td></tr>'; return; }
+  tbody.innerHTML = notas.map(n => `
+    <tr>
+      <td>${n.titulo||''}</td><td>${n.categoria||''}</td><td>${n.texto||''}</td>
+      <td>
+        <button class="btn btn-edit" onclick="editarNota('${n.objectId}','${(n.titulo||'').replace(/'/g,"\\'")}','${(n.texto||'').replace(/'/g,"\\'")}')">Editar</button>
+        <button class="btn btn-danger" onclick="deletarNota('${n.objectId}')">Excluir</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function deletarNota(id) {
+  if (!confirm('Excluir?')) return;
+  if (id.startsWith('local_')) { localNotas = localNotas.filter(n => n.objectId !== id); localStorage.setItem('notas', JSON.stringify(localNotas)); }
+  else { try { await b4aFetch(B4A_URL + '/' + id, { method: 'DELETE' }); } catch {} }
+  carregarNotas();
+}
+
+function editarNota(id, titulo, texto) {
+  document.getElementById('nota-titulo').value = titulo;
+  document.getElementById('nota-texto').value = texto;
+  document.getElementById('nota-status').textContent = 'Editando — salve para confirmar.';
+  if (id.startsWith('local_')) { localNotas = localNotas.filter(n => n.objectId !== id); localStorage.setItem('notas', JSON.stringify(localNotas)); }
+  else { b4aFetch(B4A_URL + '/' + id, { method: 'DELETE' }).catch(() => {}); }
+}
+
+document.querySelector('nav button:nth-child(4)').addEventListener('click', carregarNotas);
+
+const delegacias = {
+  PE: { nome: 'DEAM – Delegacia Especializada de Atendimento à Mulher do Recife', endereco: 'Rua do Hospício, 431 – Boa Vista, Recife/PE', tel: '(81) 3184-3520' },
+  SP: { nome: 'DDM – Delegacia de Defesa da Mulher (Centro)', endereco: 'Rua Major Quedinho, 90 – República, São Paulo/SP', tel: '(11) 3392-5044' },
+  RJ: { nome: 'DEAM – Delegacia Especializada de Atendimento à Mulher', endereco: 'Rua Aquidabã, 116 – Centro, Rio de Janeiro/RJ', tel: '(21) 2502-0267' },
+  MG: { nome: 'DEAM Belo Horizonte', endereco: 'Rua Guajajaras, 1200 – Centro, Belo Horizonte/MG', tel: '(31) 3213-1022' },
+  BA: { nome: 'DEAM Salvador', endereco: 'Av. ACM, s/n – Tancredo Neves, Salvador/BA', tel: '(71) 3116-9340' },
+  RS: { nome: 'DEAM Porto Alegre', endereco: 'Av. João Pessoa, 2050 – Santana, Porto Alegre/RS', tel: '(51) 3288-3400' },
+  PR: { nome: 'DEAM Curitiba', endereco: 'Rua Marechal Deodoro, 800 – Centro, Curitiba/PR', tel: '(41) 3251-3036' },
+  CE: { nome: 'DEAM Fortaleza', endereco: 'Av. Bezerra de Menezes, 581 – São Gerardo, Fortaleza/CE', tel: '(85) 3101-1540' },
+  AM: { nome: 'DEAM Manaus', endereco: 'Rua Emílio Moreira, 1560 – Praça 14 de Janeiro, Manaus/AM', tel: '(92) 3182-4500' },
+  GO: { nome: 'DEAM Goiânia', endereco: 'Av. Anhanguera, 7195 – Setor Bueno, Goiânia/GO', tel: '(62) 3201-2230' },
+};
+
+function mascaraCEP(input) {
+  let v = input.value.replace(/\D/g, '').slice(0, 8);
+  if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5);
+  input.value = v;
+}
+
+async function buscarCEP() {
+  const cep = document.getElementById('cep-input').value.replace(/\D/g, '');
+  const div = document.getElementById('cep-resultado');
+
+  if (cep.length !== 8) {
+    div.innerHTML = '<p style="color:#c0392b;font-size:0.82rem;">Digite um CEP válido com 8 dígitos.</p>';
+    return;
+  }
+
+  div.innerHTML = '<span class="spinner">Buscando endereço…</span>';
+
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const d = await r.json();
+
+    if (d.erro) {
+      div.innerHTML = '<p style="color:#c0392b;font-size:0.82rem;">CEP não encontrado. Verifique e tente novamente.</p>';
+      return;
+    }
+
+    const deam = delegacias[d.uf];
+
+    div.innerHTML = `
+      <table>
+        <thead><tr><th colspan="2">Endereço encontrado</th></tr></thead>
+        <tbody>
+          <tr><td><strong>CEP</strong></td><td>${d.cep}</td></tr>
+          <tr><td><strong>Logradouro</strong></td><td>${d.logradouro || '—'}</td></tr>
+          <tr><td><strong>Bairro</strong></td><td>${d.bairro || '—'}</td></tr>
+          <tr><td><strong>Cidade/UF</strong></td><td>${d.localidade} / ${d.uf}</td></tr>
+        </tbody>
+      </table>
+
+      <br>
+
+      ${deam ? `
+      <table>
+        <thead><tr><th colspan="2">DEAM de referência — ${d.uf}</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Nome</strong></td><td>${deam.nome}</td></tr>
+          <tr><td><strong>Endereço</strong></td><td>${deam.endereco}</td></tr>
+          <tr><td><strong>Telefone</strong></td><td>${deam.tel}</td></tr>
+        </tbody>
+      </table>` : `
+      <table>
+        <thead><tr><th>DEAM — ${d.uf}</th></tr></thead>
+        <tbody>
+          <tr><td>Unidade não cadastrada. Acesse <a href="https://www.gov.br/mdh/pt-br/navegue-por-temas/politicas-para-mulheres/arquivo/assuntos/violencia/ligue-180" target="_blank" style="color:#7a1f2e">gov.br/ligue180</a> para localizar a mais próxima.</td></tr>
+        </tbody>
+      </table>`}
+
+      <br>
+      <div style="background:#fff3f3;border-left:4px solid #c0392b;border-radius:4px;padding:10px 14px;font-size:0.82rem;color:#555;">
+        Em situação de emergência, ligue <strong style="color:#c0392b">180</strong> (Central da Mulher) ou <strong style="color:#c0392b">190</strong> (Polícia Militar). Gratuito, 24h.
+      </div>`;
+  } catch {
+    div.innerHTML = '<p style="color:#c0392b;font-size:0.82rem;">Erro ao consultar o CEP. Verifique sua conexão.</p>';
+  }
+}
+
+document.getElementById('cep-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') buscarCEP();
+});
+</script>
+</body>
+</html>
